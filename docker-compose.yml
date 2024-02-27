@@ -1,0 +1,124 @@
+version: '3.8'
+services:
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    networks:
+      - mongo-network
+    volumes:
+      - mongo-data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-password}
+  company-service:
+    image: galimatias/company-service:0.0.1-SNAPSHOT
+    ports:
+      - "8102:8102"
+    networks:
+      - invoice-network
+      - mongo-network
+    depends_on:
+      - naming-server
+      - zipkin
+      - mongodb
+      - spring-cloud-config-server
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://naming-server:8761/eureka
+      SPRING_CONFIG_IMPORT: optional:configserver:http://spring-cloud-config-server:8888/
+      MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin:9411/api/v2/spans
+      EUREKA_CLIENT_REGISTER-WITH-EUREKA: true
+      EUREKA_CLIENT_FETCH-REGISTRY: true
+  invoice-management:
+    image: galimatias/invoice-management:0.0.1-SNAPSHOT
+    ports:
+      - "8100:8100"
+    networks:
+      - invoice-network
+      - mongo-network
+    depends_on:
+      - naming-server
+      - zipkin
+      - mongodb
+      - spring-cloud-config-server
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://naming-server:8761/eureka
+      SPRING_CONFIG_IMPORT: optional:configserver:http://spring-cloud-config-server:8888/
+      MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin:9411/api/v2/spans
+      EUREKA_CLIENT_REGISTER-WITH-EUREKA: true
+      EUREKA_CLIENT_FETCH-REGISTRY: true
+  invoice-extractor:
+    image: galimatias/invoice-extractor:0.0.1-SNAPSHOT
+    ports:
+      - "8101:8101"
+    networks:
+      - invoice-network
+    depends_on:
+      - naming-server
+      - zipkin
+      - spring-cloud-config-server
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://naming-server:8761/eureka
+      SPRING_CONFIG_IMPORT: optional:configserver:http://spring-cloud-config-server:8888/
+      MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin:9411/api/v2/spans
+      EUREKA_CLIENT_REGISTER-WITH-EUREKA: true
+      EUREKA_CLIENT_FETCH-REGISTRY: true
+  spring-cloud-config-server:
+    image: galimatias/spring-cloud-config-server:0.0.1-SNAPSHOT
+    ports:
+      - "8888:8888"
+    networks:
+      - invoice-network
+    depends_on:
+      - zipkin
+    environment:
+      SPRING_CLOUD_CONFIG_SERVER_GIT_URI: ${CONFIG_SERVER_GIT_URI}
+      SPRING_CLOUD_CONFIG_SERVER_GIT_USERNAME: ${CONFIG_SERVER_GIT_USERNAME}
+      SPRING_CLOUD_CONFIG_SERVER_GIT_PASSWORD: ${CONFIG_SERVER_GIT_PASSWORD}
+  zipkin:
+    image: openzipkin/zipkin:latest
+    ports:
+      - "9411:9411"
+    networks:
+      - invoice-network
+  naming-server:
+    image: galimatias/naming-server:0.0.1-SNAPSHOT
+    ports:
+      - "8761:8761"
+    environment:
+      SPRING_CONFIG_IMPORT: optional:configserver:http://spring-cloud-config-server:8888
+    networks:
+      - invoice-network
+    depends_on:
+      - zipkin
+  api-gateway:
+    image: galimatias/api-gateway:0.0.1-SNAPSHOT
+    ports:
+      - "8765:8765"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://naming-server:8761/eureka
+      SPRING_CONFIG_IMPORT: optional:configserver:http://spring-cloud-config-server:8888/
+      MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin:9411/api/v2/spans
+      SPRING_REDIS_HOST: redis
+    networks:
+      - invoice-network
+      - redis-network
+    depends_on:
+      - zipkin
+      - naming-server
+      - redis
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    networks:
+      - redis-network
+networks:
+  mongo-network:
+    driver: bridge
+  invoice-network:
+    driver: bridge
+  redis-network:
+    driver: bridge
+volumes:
+  mongo-data:
