@@ -17,6 +17,19 @@ import java.util.List;
 public class DefaultExceptionHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(DefaultExceptionHandler.class);
 
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ApiError> handleException(ResourceNotFoundException e, HttpServletRequest request) {
+        LOGGER.error(e.getMessage(), e);
+
+        ApiError apiError = new ApiError(
+                request.getRequestURI(),
+                List.of(e.getMessage()),
+                HttpStatus.NOT_FOUND.value(),
+                new Date()
+        );
+        return new ResponseEntity<>(apiError, HttpStatus.NOT_FOUND);
+    }
+
     @ExceptionHandler(DuplicateResourceException.class)
     public ResponseEntity<ApiError> handleException(DuplicateResourceException e, HttpServletRequest request) {
         LOGGER.error(e.getMessage(), e);

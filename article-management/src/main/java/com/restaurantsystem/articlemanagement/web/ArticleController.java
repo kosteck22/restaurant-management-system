@@ -2,7 +2,9 @@ package com.restaurantsystem.articlemanagement.web;
 
 import com.restaurantsystem.articlemanagement.entity.Article;
 import com.restaurantsystem.articlemanagement.service.IArticleService;
+import com.restaurantsystem.articlemanagement.web.dto.ArticleDto;
 import com.restaurantsystem.articlemanagement.web.dto.ArticleRequest;
+import feign.Response;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,13 +23,18 @@ public class ArticleController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Article>> getArticles() {
-        List<Article> articles = articleService.getActiveArticles();
+    public ResponseEntity<List<ArticleDto>> getArticles() {
+        List<ArticleDto> articles = articleService.getActiveArticles();
         if (articles.isEmpty()) {
             return ResponseEntity.noContent().build();
         }
 
         return ResponseEntity.ok(articles);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ArticleDto> getById(@PathVariable("id") String id) {
+        return ResponseEntity.ok(articleService.getById(id));
     }
 
     @PostMapping
