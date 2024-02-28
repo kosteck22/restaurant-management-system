@@ -4,7 +4,7 @@ import lombok.Builder;
 
 import java.math.BigDecimal;
 
-@Builderx
+@Builder
 public record ArticleDto(
         String name,
         String shortName,
