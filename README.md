@@ -100,7 +100,7 @@ This microservice is used to make CRUD and aggregation oppreations on invoices.
         "positionNumber": 1,
         "quantity": 2,
         "discount": 0,
-        "product: {
+        "product": {
           "name": "Bread",
           "unitOfMeasure": "szt.",
           "netPrice": 4.99,
@@ -111,7 +111,7 @@ This microservice is used to make CRUD and aggregation oppreations on invoices.
         "positionNumber": 2,
         "quantity": 1,
         "discount": 0,
-        "product: {
+        "product": {
           "name": "Water 0,33ml",
           "unitOfMeasure": "szt.",
           "netPrice": 2.99,
