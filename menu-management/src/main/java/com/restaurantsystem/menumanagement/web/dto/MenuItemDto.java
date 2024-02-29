@@ -5,9 +5,10 @@ import lombok.Builder;
 import java.math.BigDecimal;
 
 @Builder
-public record ArticleDto(
+public record MenuItemDto(
         String name,
         String shortName,
+        String description,
         String category,
         Integer vat,
         BigDecimal grossPrice,

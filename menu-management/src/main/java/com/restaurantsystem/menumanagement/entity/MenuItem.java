@@ -11,7 +11,7 @@ import java.math.BigDecimal;
 @Document
 @Builder
 @Data
-public class Article {
+public class MenuItem {
     @Id
     private String id;
 
@@ -20,6 +20,8 @@ public class Article {
 
     @Indexed(unique = true)
     private String shortName;
+
+    private String description;
 
     private String category;
 
