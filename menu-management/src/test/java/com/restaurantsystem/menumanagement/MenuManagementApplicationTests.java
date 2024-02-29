@@ -1,10 +1,10 @@
-package com.restaurantsystem.articlemanagement;
+package com.restaurantsystem.menumanagement;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class ArticleManagementApplicationTests {
+class MenuManagementApplicationTests {
 
 	@Test
 	void contextLoads() {

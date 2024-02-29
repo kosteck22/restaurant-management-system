@@ -9,9 +9,9 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.restaurant-system</groupId>
-	<artifactId>article-management</artifactId>
+	<artifactId>menu-management</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>article-management</name>
+	<name>menu-management</name>
 	<description>Demo project for Spring Boot</description>
 	<properties>
 		<java.version>17</java.version>
