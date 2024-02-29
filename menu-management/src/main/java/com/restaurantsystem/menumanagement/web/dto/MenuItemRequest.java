@@ -6,11 +6,12 @@ import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
 
-public record ArticleRequest(
+public record MenuItemRequest(
         @NotBlank String name,
         @NotBlank String shortName,
+        String description,
         @NotBlank String category,
-        Integer vat,
+        @NotNull Integer vat,
         @NotNull @MonetaryValue BigDecimal grossPrice,
         boolean active
 ) {
