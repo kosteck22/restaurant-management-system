@@ -54,6 +54,14 @@ public class MenuItemService implements IMenuItemService {
         return menuItemRepository.save(menuItem).getId();
     }
 
+    @Override
+    public List<MenuItemDto> getActiveMenuItemsByIds(List<String> ids) {
+        return menuItemRepository.findByIdInAndActiveIsTrue(ids)
+                .stream()
+                .map(menuItemMapper::toDto)
+                .collect(Collectors.toList());
+    }
+
     private void throwIfShortNameAlreadyExist(String shortName) {
         menuItemRepository.findByShortName(shortName)
                 .ifPresent(a -> {

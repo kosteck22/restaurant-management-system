@@ -35,6 +35,13 @@ public class MenuItemController {
         return ResponseEntity.ok(menuItemService.getById(id));
     }
 
+    @PostMapping("/list-by-ids")
+    public ResponseEntity<List<MenuItemDto>> getMenuItemsByIds(@RequestBody List<String> ids) {
+        List<MenuItemDto> menuItems = menuItemService.getActiveMenuItemsByIds(ids);
+
+        return ResponseEntity.ok(menuItems);
+    }
+
     @PostMapping
     public ResponseEntity<String> save(@Valid @RequestBody MenuItemRequest menuItemRequest) {
         String id = menuItemService.save(menuItemRequest);

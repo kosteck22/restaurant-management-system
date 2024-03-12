@@ -1,10 +1,7 @@
-package com.restaurantsystem.menumanagement.web.dto;
-
-import lombok.Builder;
+package com.restaurantsystem.salesmanagement.web.dto;
 
 import java.math.BigDecimal;
 
-@Builder
 public record MenuItemDto(
         String id,
         String name,
@@ -16,3 +13,4 @@ public record MenuItemDto(
         boolean active
 ) {
 }
+
