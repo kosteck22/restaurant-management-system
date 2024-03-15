@@ -9,4 +9,5 @@ public interface IMenuItemService {
     List<MenuItemDto> getActiveMenuItems();
     String save(MenuItemRequest articleRequest);
     MenuItemDto getById(String id);
+    List<MenuItemDto> getActiveMenuItemsByIds(List<String> ids);
 }

@@ -11,4 +11,5 @@ public interface MenuItemRepository extends MongoRepository<MenuItem, String> {
     List<MenuItem> findByActiveTrue();
     Optional<MenuItem> findByName(String name);
     Optional<MenuItem> findByShortName(String shortName);
+    List<MenuItem> findByIdInAndActiveIsTrue(List<String> ids);
 }

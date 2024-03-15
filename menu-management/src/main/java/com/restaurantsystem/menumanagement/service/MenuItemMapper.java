@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 public class MenuItemMapper {
     public MenuItemDto toDto(MenuItem menuItem) {
         return MenuItemDto.builder()
+                .id(menuItem.getId())
                 .name(menuItem.getName())
                 .shortName(menuItem.getShortName())
                 .description(menuItem.getDescription())
