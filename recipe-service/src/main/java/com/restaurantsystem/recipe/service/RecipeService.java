@@ -7,7 +7,9 @@ import com.restaurantsystem.recipe.exception.ResourceNotFoundException;
 import com.restaurantsystem.recipe.service.dao.RecipeRepository;
 import com.restaurantsystem.recipe.web.client.MenuClient;
 import com.restaurantsystem.recipe.web.dto.MenuItemDto;
+import com.restaurantsystem.recipe.web.dto.RecipeDto;
 import com.restaurantsystem.recipe.web.dto.RecipeRequest;
+import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -16,14 +18,18 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@AllArgsConstructor
 public class RecipeService implements IRecipeService {
 
     private final MenuClient menuClient;
     private final RecipeRepository recipeRepository;
+    private final RecipeMapper recipeMapper;
 
-    public RecipeService(MenuClient menuClient, RecipeRepository recipeRepository) {
-        this.menuClient = menuClient;
-        this.recipeRepository = recipeRepository;
+    @Override
+    public RecipeDto get(String id) {
+        return recipeRepository.findById(id)
+                .map(recipeMapper::toDto)
+                .orElseThrow(() -> new ResourceNotFoundException("Recipe with id {%s} not found".formatted(id)));
     }
 
     @Override
