@@ -33,6 +33,13 @@ public class RecipeService implements IRecipeService {
     }
 
     @Override
+    public List<RecipeDto> getRecipesByIds(List<String> menuItemIds) {
+        return recipeRepository.findByMenuItemIdIn(menuItemIds).stream()
+                .map(recipeMapper::toDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public String save(String menuItemId, RecipeRequest request) {
         ResponseEntity<MenuItemDto> menuItemResponse = menuClient.getById(menuItemId);
         if (menuItemResponse.getStatusCode() != HttpStatus.OK) {

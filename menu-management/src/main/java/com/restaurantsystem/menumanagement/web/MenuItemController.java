@@ -37,9 +37,7 @@ public class MenuItemController {
 
     @PostMapping("/list-by-ids")
     public ResponseEntity<List<MenuItemDto>> getMenuItemsByIds(@RequestBody List<String> ids) {
-        List<MenuItemDto> menuItems = menuItemService.getActiveMenuItemsByIds(ids);
-
-        return ResponseEntity.ok(menuItems);
+        return ResponseEntity.ok(menuItemService.getActiveMenuItemsByIds(ids));
     }
 
     @PostMapping

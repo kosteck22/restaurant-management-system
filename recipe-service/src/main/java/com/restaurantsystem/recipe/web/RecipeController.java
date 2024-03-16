@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/recipes")
@@ -23,6 +24,11 @@ public class RecipeController {
     @GetMapping("/{id}")
     public ResponseEntity<RecipeDto> get(@PathVariable(name = "id") String id) {
         return ResponseEntity.ok(recipeService.get(id));
+    }
+
+    @PostMapping("/find-by-menu-item-ids")
+    public ResponseEntity<List<RecipeDto>> getRecipesByIds(@RequestBody List<String> menuItemIds) {
+        return ResponseEntity.ok(recipeService.getRecipesByIds(menuItemIds));
     }
 
     @PostMapping("/menu-items/{id}")
