@@ -1,28 +1,19 @@
 package com.restaurantsystem.stockmanagement.entity;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Table;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.index.Indexed;
-import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.math.BigDecimal;
 
-@Document
+@Entity
+@Table(name = "stocks")
 public class Stock {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private String id;
 
-    @Indexed(unique = true)
     private String name;
-
-    @Indexed(unique = true)
-    private String shortName;
-
-    private String description;
-
-    private String category;
-
-    private VatRate vat;
-    private BigDecimal grossPrice;
-
-    private boolean active;
 }
