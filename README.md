@@ -73,7 +73,7 @@ This microservice is used to make CRUD and aggregation oppreations on invoices.
 }
 ```
 
-##### <a id="invoicerequest">Login -> /api/v1/invoices</a>
+##### <a id="invoicerequest">Save Invoice -> /api/v1/invoices</a>
 ```json
 {
 	"number": "1/123/2024",
