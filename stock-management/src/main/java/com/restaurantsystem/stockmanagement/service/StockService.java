@@ -3,23 +3,29 @@ package com.restaurantsystem.stockmanagement.service;
 import com.restaurantsystem.stockmanagement.entity.*;
 import com.restaurantsystem.stockmanagement.exception.RequestValidationException;
 import com.restaurantsystem.stockmanagement.exception.ResourceNotFoundException;
+import com.restaurantsystem.stockmanagement.service.dao.StockAuditRepository;
 import com.restaurantsystem.stockmanagement.service.dao.ProductRepository;
 import com.restaurantsystem.stockmanagement.service.dao.StockRepository;
 import com.restaurantsystem.stockmanagement.service.dao.StockTransactionRepository;
 import com.restaurantsystem.stockmanagement.web.client.InvoiceManagementClient;
+import com.restaurantsystem.stockmanagement.web.dto.InventoryRequest;
 import com.restaurantsystem.stockmanagement.web.dto.addToStock.ProductDto;
 import com.restaurantsystem.stockmanagement.web.dto.addToStock.AddToStockRequest;
 import com.restaurantsystem.stockmanagement.web.dto.deduceFromStock.DeduceFromStockRequest;
-import com.restaurantsystem.stockmanagement.web.dto.deduceFromStock.ProductToDeduceDto;
+import com.restaurantsystem.stockmanagement.web.dto.deduceFromStock.ProductDetailDto;
 import com.restaurantsystem.stockmanagement.web.dto.invoice.InvoiceDto;
 import com.restaurantsystem.stockmanagement.web.dto.invoice.OrderDetailsDto;
+import jakarta.validation.ValidationException;
 import lombok.AllArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @AllArgsConstructor
@@ -28,6 +34,12 @@ public class StockService implements IStockService {
     private final ProductRepository productRepository;
     private final StockTransactionRepository stockTransactionRepository;
     private final StockRepository stockRepository;
+    private final StockAuditRepository stockAuditRepository;
+
+    @Override
+    public Page<Stock> getStocksAsPage(Pageable pageable) {
+        return stockRepository.findAll(pageable);
+    }
 
     @Override
     @Transactional
@@ -125,16 +137,16 @@ public class StockService implements IStockService {
             stockTransactionRepository.save(stockTransaction);
             stockRepository.saveAll(stocksToUpdateOrCreate);
         } else {
-            //implementation for other and gift source
+            //implementation for gift and other source
         }
     }
 
     @Override
     @Transactional
     public void deduceProductsFromStock(DeduceFromStockRequest stockRequest) {
-        List<ProductToDeduceDto> products = stockRequest.products();
+        List<ProductDetailDto> products = stockRequest.products();
         List<String> productIdsFromRequest = products.stream()
-                .map(ProductToDeduceDto::productId)
+                .map(ProductDetailDto::productId)
                 .toList();
 
         List<Stock> stocks = stockRepository.findAllByProductIdIn(productIdsFromRequest);
@@ -151,7 +163,10 @@ public class StockService implements IStockService {
         }
 
         Map<String, BigDecimal> productIdToQuantityMap = products.stream()
-                .collect(Collectors.toMap(ProductToDeduceDto::productId, ProductToDeduceDto::quantity));
+                .collect(Collectors.toMap(
+                        ProductDetailDto::productId,
+                        ProductDetailDto::quantity,
+                        BigDecimal::add));
 
         List<Stock> stocksWithNotEnoughQuantity = stocks.stream()
                 .filter(s -> s.getQuantity()
@@ -166,9 +181,17 @@ public class StockService implements IStockService {
         }
 
         List<ProductDetail> productDetails = stockRequest.products().stream()
-                .map(p -> ProductDetail.builder()
-                        .productId(p.productId())
-                        .quantity(p.quantity())
+                .collect(Collectors.groupingBy(
+                        ProductDetailDto::productId,
+                        Collectors.reducing(
+                                BigDecimal.ZERO,
+                                ProductDetailDto::quantity,
+                                BigDecimal::add
+                        )))
+                .entrySet().stream()
+                .map(entry -> ProductDetail.builder()
+                        .productId(entry.getKey())
+                        .quantity(entry.getValue())
                         .build())
                 .toList();
 
@@ -191,5 +214,154 @@ public class StockService implements IStockService {
 
         stockTransactionRepository.save(stockTransaction);
         stockRepository.saveAll(stocks);
+    }
+
+    @Override
+    @Transactional
+    public String addStockCheckList(InventoryRequest inventoryRequest) {
+        boolean isNewerStockChecklist = stockAuditRepository.existsByTypeAndDateGreaterThan(StockAuditType.STOCK_CHECKLIST, inventoryRequest.date());
+        if (isNewerStockChecklist) {
+            throw new ValidationException("Another Stock audit exists that was created after yours.");
+        }
+
+        Map<String, BigDecimal> productIdToQuantityMapFromRequest = inventoryRequest.products().stream()
+                .collect(Collectors.toMap(
+                        ProductDetailDto::productId,
+                        ProductDetailDto::quantity,
+                        BigDecimal::add
+                ));
+
+        List<Stock> stocks = stockRepository.findAll();
+        Map<String, BigDecimal> productIdToQuantityMapFromStock = stocks.stream()
+                .collect(Collectors.toMap(
+                        Stock::getProductId,
+                        Stock::getQuantity,
+                        BigDecimal::add
+                ));
+
+        List<String> missingIds = productIdToQuantityMapFromRequest.keySet().stream()
+                .filter(id -> !productIdToQuantityMapFromStock.containsKey(id))
+                .toList();
+
+        if (!missingIds.isEmpty()) {
+            throw new ResourceNotFoundException("There are no productActual in stock for given ids [%s]".formatted(String.join(",", missingIds)));
+        }
+
+        Optional<StockAudit> latestStockCheckList = stockAuditRepository.findTopByStockAuditTypeAndOrderByDateDesc(StockAuditType.STOCK_CHECKLIST);
+        List<StockTransaction> stockTransactions;
+        Map<String, BigDecimal> productIdToQuantityMapFromDb;
+
+        if (latestStockCheckList.isPresent()) {
+            stockTransactions = stockTransactionRepository.findByDateGreaterThanAndTransactionType(latestStockCheckList.get().getDate(), TransactionType.ADD);
+            productIdToQuantityMapFromDb = Stream.concat(
+                            latestStockCheckList.get().getProductDetails().stream(),
+                            stockTransactions.stream()
+                                    .flatMap(t -> t.getProductDetails().stream())
+                    )
+                    .collect(Collectors.groupingBy(
+                            ProductDetail::getProductId,
+                            Collectors.reducing(
+                                    BigDecimal.ZERO,
+                                    ProductDetail::getQuantity,
+                                    BigDecimal::add))
+                    );
+        } else {
+            stockTransactions = stockTransactionRepository.findByTransactionType(TransactionType.ADD);
+            productIdToQuantityMapFromDb = stockTransactions.stream()
+                    .flatMap(t -> t.getProductDetails().stream())
+                    .collect(Collectors.groupingBy(
+                            ProductDetail::getProductId,
+                            Collectors.reducing(
+                                    BigDecimal.ZERO,
+                                    ProductDetail::getQuantity,
+                                    BigDecimal::add)));
+        }
+
+        List<String> productIdsForExceedingQuantity = productIdToQuantityMapFromRequest.entrySet().stream()
+                .filter(entry -> {
+                    String productId = entry.getKey();
+                    BigDecimal quantity = entry.getValue();
+                    BigDecimal quantityFromDb = productIdToQuantityMapFromDb.getOrDefault(productId, BigDecimal.ZERO);
+
+                    return quantity.compareTo(quantityFromDb) > 0;
+                })
+                .map(Map.Entry::getKey)
+                .toList();
+
+        if (!productIdsForExceedingQuantity.isEmpty()) {
+            throw new ValidationException("Quantity for product ids [%s] cannot be greater that from db".formatted(String.join(",", productIdsForExceedingQuantity)));
+        }
+
+        List<ProductDetail> productActual = productIdToQuantityMapFromRequest
+                .entrySet().stream()
+                .map(entry -> ProductDetail.builder()
+                        .productId(entry.getKey())
+                        .quantity(entry.getValue())
+                        .build())
+                .toList();
+
+        List<ProductDetail> productUsage = productIdToQuantityMapFromDb.entrySet().stream()
+                .map(entry -> ProductDetail.builder()
+                        .productId(entry.getKey())
+                        .quantity(entry.getValue().subtract(productIdToQuantityMapFromRequest.get(entry.getKey())))
+                        .build())
+                .toList();
+
+        List<ProductDetail> productDiff = calculateDiff(productIdToQuantityMapFromRequest, productIdToQuantityMapFromStock).entrySet().stream()
+                .map(entry -> ProductDetail.builder()
+                        .productId(entry.getKey())
+                        .quantity(entry.getValue().subtract(productIdToQuantityMapFromRequest.get(entry.getKey())))
+                        .build())
+                .toList();
+
+        StockAudit stockCheckList = StockAudit.builder()
+                .date(inventoryRequest.date())
+                .description(inventoryRequest.description())
+                .type(StockAuditType.STOCK_CHECKLIST)
+                .productDetails(productActual)
+                .build();
+
+        StockAudit stockDiff = StockAudit.builder()
+                .date(inventoryRequest.date())
+                .type(StockAuditType.STOCK_DIFF_FROM_CALC)
+                .productDetails(productDiff)
+                .build();
+
+
+        StockAudit stockUsage = StockAudit.builder()
+                .date(inventoryRequest.date())
+                .type(StockAuditType.STOCK_USAGE_FROM_LAST_CHECK)
+                .productDetails(productUsage)
+                .build();
+
+        List<Stock> stocksToSave = productActual.stream()
+                .map(p -> Stock.builder()
+                        .productId(p.getProductId())
+                        .quantity(p.getQuantity())
+                        .build())
+                .toList();
+
+        stockRepository.deleteAll();
+        stockRepository.saveAll(stocksToSave);
+        stockAuditRepository.saveAll(List.of(stockDiff, stockUsage));
+
+        return stockAuditRepository.save(stockCheckList).getId();
+    }
+
+    private Map<String, BigDecimal> calculateDiff(Map<String, BigDecimal> realInventory, Map<String, BigDecimal> calculatedInventory) {
+        Map<String, BigDecimal> result = new HashMap<>();
+
+        realInventory.forEach((productId, quantity) -> {
+            BigDecimal calculatedQuantity = calculatedInventory.getOrDefault(productId, BigDecimal.ZERO);
+            result.put(productId, quantity.subtract(calculatedQuantity));
+        });
+
+        calculatedInventory.forEach((productId, quantity) -> {
+            if (!realInventory.containsKey(productId)) {
+                result.put(productId, quantity.negate());
+            }
+        });
+
+        return result;
     }
 }

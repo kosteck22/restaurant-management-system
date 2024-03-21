@@ -2,6 +2,7 @@ package com.restaurantsystem.stockmanagement.entity;
 
 import jakarta.persistence.Id;
 import lombok.Builder;
+import lombok.Getter;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
@@ -9,6 +10,7 @@ import java.util.List;
 
 @Document
 @Builder
+@Getter
 public class StockTransaction {
     @Id
     private String id;
@@ -17,6 +19,7 @@ public class StockTransaction {
 
     private List<ProductDetail> productDetails;
     private StockSource source;
+
     private TransactionType transactionType;
 
     public StockTransaction(LocalDateTime date, String description, List<ProductDetail> products, StockSource stockSource, TransactionType transactionType) {

@@ -11,7 +11,7 @@ import java.util.List;
 public record DeduceFromStockRequest(
         String description,
         @NotNull LocalDateTime date,
-        @Valid @NotNull @Size(min = 1, max = 300) List<ProductToDeduceDto> products,
+        @Valid @NotNull @Size(min = 1, max = 300) List<ProductDetailDto> products,
         @Valid @NotNull StockSourceDto stockSource
 ) {
 }
