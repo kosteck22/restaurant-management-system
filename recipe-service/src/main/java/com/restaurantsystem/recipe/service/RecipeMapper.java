@@ -14,12 +14,12 @@ public class RecipeMapper {
     RecipeDto toDto(Recipe recipe) {
         return RecipeDto.builder()
                 .id(recipe.getId())
-                .ingredients(getIngredientsDtos(recipe.getIngredients()))
+                .ingredients(getIngredientsDto(recipe.getIngredients()))
                 .menuItemId(recipe.getMenuItemId())
                 .build();
     }
 
-    private List<IngredientDto> getIngredientsDtos(List<Ingredient> ingredients) {
+    private List<IngredientDto> getIngredientsDto(List<Ingredient> ingredients) {
         return ingredients.stream()
                 .map(i -> IngredientDto.builder()
                         .name(i.getName())

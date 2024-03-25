@@ -8,17 +8,22 @@ import com.restaurantsystem.stockmanagement.service.dao.ProductRepository;
 import com.restaurantsystem.stockmanagement.service.dao.StockRepository;
 import com.restaurantsystem.stockmanagement.service.dao.StockTransactionRepository;
 import com.restaurantsystem.stockmanagement.web.client.InvoiceManagementClient;
+import com.restaurantsystem.stockmanagement.web.client.RecipeClient;
 import com.restaurantsystem.stockmanagement.web.dto.InventoryRequest;
+import com.restaurantsystem.stockmanagement.web.dto.SaleCreatedEvent;
 import com.restaurantsystem.stockmanagement.web.dto.addToStock.ProductDto;
 import com.restaurantsystem.stockmanagement.web.dto.addToStock.AddToStockRequest;
 import com.restaurantsystem.stockmanagement.web.dto.deduceFromStock.DeduceFromStockRequest;
 import com.restaurantsystem.stockmanagement.web.dto.deduceFromStock.ProductDetailDto;
 import com.restaurantsystem.stockmanagement.web.dto.invoice.InvoiceDto;
 import com.restaurantsystem.stockmanagement.web.dto.invoice.OrderDetailsDto;
+import com.restaurantsystem.stockmanagement.web.dto.recipe.RecipeDto;
 import jakarta.validation.ValidationException;
 import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
+import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +36,7 @@ import java.util.stream.Stream;
 @AllArgsConstructor
 public class StockService implements IStockService {
     private final InvoiceManagementClient invoiceManagementClient;
+    private final RecipeClient recipeClient;
     private final ProductRepository productRepository;
     private final StockTransactionRepository stockTransactionRepository;
     private final StockRepository stockRepository;
@@ -363,5 +369,12 @@ public class StockService implements IStockService {
         });
 
         return result;
+    }
+
+    @KafkaListener(topics = "saleCreated", groupId = "saleGroup")
+    public void consumeSaleCreatedEvent(SaleCreatedEvent event) {
+        ResponseEntity<List<RecipeDto>> recipesByIds = recipeClient.getRecipesByIds(event.getSoldItemsIdToQuantityMap().keySet().stream().toList());
+
+        
     }
 }
