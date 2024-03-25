@@ -1,13 +1,13 @@
 package com.restaurantsystem.stockmanagement.entity;
 
-import jakarta.persistence.*;
 import lombok.Builder;
 import lombok.Getter;
+import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
-import org.springframework.stereotype.Component;
 
-import javax.print.attribute.standard.MediaSize;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 
 @Document
 @Getter

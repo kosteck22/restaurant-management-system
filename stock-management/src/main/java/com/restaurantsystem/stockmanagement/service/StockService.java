@@ -17,6 +17,7 @@ import com.restaurantsystem.stockmanagement.web.dto.deduceFromStock.DeduceFromSt
 import com.restaurantsystem.stockmanagement.web.dto.deduceFromStock.ProductDetailDto;
 import com.restaurantsystem.stockmanagement.web.dto.invoice.InvoiceDto;
 import com.restaurantsystem.stockmanagement.web.dto.invoice.OrderDetailsDto;
+import com.restaurantsystem.stockmanagement.web.dto.recipe.IngredientDto;
 import com.restaurantsystem.stockmanagement.web.dto.recipe.RecipeDto;
 import jakarta.validation.ValidationException;
 import lombok.AllArgsConstructor;
@@ -122,6 +123,7 @@ public class StockService implements IStockService {
                 } else {
                     Stock newStock = Stock.builder()
                             .productId(productId)
+                            .productName(productName)
                             .quantity(productDto.quantity())
                             .build();
                     stocksToUpdateOrCreate.add(newStock);
@@ -343,6 +345,11 @@ public class StockService implements IStockService {
         List<Stock> stocksToSave = productActual.stream()
                 .map(p -> Stock.builder()
                         .productId(p.getProductId())
+                        .productName(stocks.stream()
+                                .filter(s -> s.getProductId().equals(p.getProductId()))
+                                .findFirst()
+                                .map(Stock::getProductName)
+                                .orElse("Default"))
                         .quantity(p.getQuantity())
                         .build())
                 .toList();
@@ -373,8 +380,79 @@ public class StockService implements IStockService {
 
     @KafkaListener(topics = "saleCreated", groupId = "saleGroup")
     public void consumeSaleCreatedEvent(SaleCreatedEvent event) {
-        ResponseEntity<List<RecipeDto>> recipesByIds = recipeClient.getRecipesByIds(event.getSoldItemsIdToQuantityMap().keySet().stream().toList());
+        List<RecipeDto> recipes = fetchAndPrepareRecipes(event);
 
-        
+        List<IngredientDto> aggregatedIngredients = recipes.stream()
+                .flatMap(r -> r.ingredients().stream())
+                .collect(Collectors.toMap(
+                        IngredientDto::name,
+                        i -> i,
+                        (i1, i2) -> IngredientDto.builder()
+                                .name(i1.name())
+                                .unitOfMeasure(i1.unitOfMeasure())
+                                .quantity(i1.quantity().add(i2.quantity()))
+                                .build())
+                ).values().stream().toList();
+
+        List<Stock> stocks = stockRepository.findAll();
+        List<ProductDetail> productDetails = new ArrayList<>();
+
+        aggregatedIngredients
+                .forEach(i -> {
+                    BigDecimal ingredientQuantityNeeded = i.quantity();
+                    List<Stock> stockForIngredient = stocks.stream()
+                            .filter(s -> s.getProductName().contains(i.name()))
+                            .toList();
+
+                    for (Stock stock : stockForIngredient) {
+                        if (ingredientQuantityNeeded.compareTo(BigDecimal.ZERO) <= 0) break;
+
+                        BigDecimal quantityToDeduct = stock.getQuantity().min(ingredientQuantityNeeded);
+                        productDetails.add(new ProductDetail(stock.getProductId(), quantityToDeduct));
+                        stock.setQuantity(stock.getQuantity().subtract(quantityToDeduct));
+                        ingredientQuantityNeeded = ingredientQuantityNeeded.subtract(quantityToDeduct);
+
+                    }
+
+                    if (ingredientQuantityNeeded.compareTo(BigDecimal.ZERO) > 0) {
+                        throw new ResourceNotFoundException("There is not enough products in Stock for ingredient [%s]".formatted(i.name()));
+                    }
+                });
+
+        StockTransaction stockTransaction = StockTransaction.builder()
+                .date(event.getDate())
+                .productDetails(productDetails)
+                .source(StockSource.builder()
+                        .sourceId(event.getId())
+                        .sourceType(SourceType.SALE_REQUEST)
+                        .build())
+                .transactionType(TransactionType.DEDUCE)
+                .build();
+
+        stockTransactionRepository.save(stockTransaction);
+        stockRepository.saveAll(stocks);
     }
+
+    private List<RecipeDto> fetchAndPrepareRecipes(SaleCreatedEvent event) {
+        List<RecipeDto> recipes = recipeClient.getRecipesByIds(event.getSoldItemsIdToQuantityMap().keySet().stream().toList()).getBody();
+        assert recipes != null;
+
+        return recipes.stream()
+                .map(recipe -> adjustRecipeQuantities(recipe, event))
+                .collect(Collectors.toList());
+    }
+
+    private RecipeDto adjustRecipeQuantities(RecipeDto recipe, SaleCreatedEvent event) {
+        Integer saleQuantity = event.getSoldItemsIdToQuantityMap().get(recipe.menuItemId());
+        if (saleQuantity == null) {
+            throw new ResourceNotFoundException("Recipe for menu item [%s] not found".formatted(recipe.menuItemId()));
+        }
+
+        List<IngredientDto> adjustedIngredients = recipe.ingredients().stream()
+                .map(i -> new IngredientDto(i.name(), i.unitOfMeasure(), i.quantity().multiply(BigDecimal.valueOf(saleQuantity))))
+                .collect(Collectors.toList());
+
+        return new RecipeDto(recipe.id(), adjustedIngredients, recipe.menuItemId());
+    }
+
 }
