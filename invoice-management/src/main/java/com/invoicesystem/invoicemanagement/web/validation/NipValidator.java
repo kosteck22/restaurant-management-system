@@ -7,7 +7,7 @@ public class NipValidator implements ConstraintValidator<ValidNip, String> {
     @Override
     public boolean isValid(String nip, ConstraintValidatorContext context) {
         if (nip == null) {
-            return false;
+            return true;
         }
 
         return nip.replace("-", "").matches("^\\d{10}$");

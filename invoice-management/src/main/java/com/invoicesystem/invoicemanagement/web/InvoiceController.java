@@ -1,6 +1,5 @@
 package com.invoicesystem.invoicemanagement.web;
 
-import com.invoicesystem.invoicemanagement.entity.Invoice;
 import com.invoicesystem.invoicemanagement.service.IInvoiceService;
 import com.invoicesystem.invoicemanagement.web.dto.InvoiceDto;
 import com.invoicesystem.invoicemanagement.web.dto.TotalSumsDto;
