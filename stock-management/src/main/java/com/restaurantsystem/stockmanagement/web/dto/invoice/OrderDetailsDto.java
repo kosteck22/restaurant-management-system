@@ -7,7 +7,7 @@ import lombok.Getter;
 
 import java.math.BigDecimal;
 
-@Getter
+
 public record OrderDetailsDto(
         Integer positionNumber,
         InvoiceProductDto product,

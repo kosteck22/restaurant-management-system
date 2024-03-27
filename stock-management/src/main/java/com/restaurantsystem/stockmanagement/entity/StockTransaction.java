@@ -2,6 +2,7 @@ package com.restaurantsystem.stockmanagement.entity;
 
 import lombok.Builder;
 import lombok.Getter;
+import lombok.Setter;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -9,8 +10,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Document
-@Builder
 @Getter
+@Setter
 public class StockTransaction {
     @Id
     private String id;

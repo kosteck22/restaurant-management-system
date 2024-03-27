@@ -16,5 +16,5 @@ public class Recipe {
     private List<Ingredient> ingredients;
 
     @Indexed(unique = true)
-    private String MenuItemId;
+    private String menuItemId;
 }

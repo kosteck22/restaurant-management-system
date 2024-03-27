@@ -37,21 +37,21 @@ public class StockController {
     }
 
     @PostMapping("addition")
-    public ResponseEntity<?> addProductsToStock(@Valid AddToStockRequest stockRequest) {
+    public ResponseEntity<?> addProductsToStock(@Valid @RequestBody AddToStockRequest stockRequest) {
         stockService.addProductsToStock(stockRequest);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(null);
     }
 
     @PatchMapping("deduction")
-    public ResponseEntity<?> deduceProductsFromStock(@Valid DeduceFromStockRequest stockRequest) {
+    public ResponseEntity<?> deduceProductsFromStock(@Valid @RequestBody DeduceFromStockRequest stockRequest) {
         stockService.deduceProductsFromStock(stockRequest);
 
         return ResponseEntity.status(HttpStatus.NO_CONTENT).body(null);
     }
 
     @PostMapping("check-list")
-    public ResponseEntity<?> addStockCheckList(@Valid InventoryRequest inventoryRequest) {
+    public ResponseEntity<?> addStockCheckList(@Valid @RequestBody InventoryRequest inventoryRequest) {
         String id = stockService.addStockCheckList(inventoryRequest);
         URI location = ServletUriComponentsBuilder
                 .fromCurrentRequest()

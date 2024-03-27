@@ -11,8 +11,6 @@ import lombok.Setter;
 import java.math.BigDecimal;
 
 @Builder
-@Getter
-@Setter
 public record IngredientDto(
         @NotBlank String name,
         @NotBlank String unitOfMeasure,

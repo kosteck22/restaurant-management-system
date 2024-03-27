@@ -59,7 +59,7 @@ public class RecipeService implements IRecipeService {
                 .collect(Collectors.toList());
 
         Recipe recipe = Recipe.builder()
-                .MenuItemId(menuItemId)
+                .menuItemId(menuItemId)
                 .ingredients(ingredients)
                 .build();
 

@@ -30,7 +30,7 @@ public class InvoiceController {
     public ResponseEntity<Page<InvoiceDto>> getInvoicesAsPage(@PageableDefault(size = 20) Pageable pageable) {
         Page<InvoiceDto> invoicePage = invoiceService.getAsPage(pageable);
         if (invoicePage.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NO_CONTENT).body(Page.empty());
+            return ResponseEntity.status(HttpStatus.NO_CONTENT).body(invoicePage);
         }
 
         return ResponseEntity.ok(invoicePage);

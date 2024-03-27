@@ -10,7 +10,6 @@ import com.restaurantsystem.stockmanagement.service.dao.StockTransactionReposito
 import com.restaurantsystem.stockmanagement.web.client.InvoiceManagementClient;
 import com.restaurantsystem.stockmanagement.web.client.RecipeClient;
 import com.restaurantsystem.stockmanagement.web.dto.InventoryRequest;
-import com.restaurantsystem.stockmanagement.web.dto.SaleCreatedEvent;
 import com.restaurantsystem.stockmanagement.web.dto.addToStock.ProductDto;
 import com.restaurantsystem.stockmanagement.web.dto.addToStock.AddToStockRequest;
 import com.restaurantsystem.stockmanagement.web.dto.deduceFromStock.DeduceFromStockRequest;
@@ -23,7 +22,6 @@ import jakarta.validation.ValidationException;
 import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.ResponseEntity;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -87,7 +85,7 @@ public class StockService implements IStockService {
             productsFromRequest.forEach((productName, productDto) -> {
                 Optional<Product> productFromDB = productRepository.findByName(productName);
                 if (productFromDB.isPresent()) {
-                    productNameToIdMap.put(productName, productFromDB.get().getName());
+                    productNameToIdMap.put(productName, productFromDB.get().getId());
 
                 } else {
                     Product productToSave = Product.builder()
@@ -130,17 +128,14 @@ public class StockService implements IStockService {
                 }
             });
 
-            StockTransaction stockTransaction = StockTransaction.builder()
-                    .date(stockRequest.date())
-                    .description(stockRequest.description())
-                    .productDetails(productDetails)
-                    .source(StockSource.builder()
-                            .sourceId(stockRequest.stockSource().sourceId())
-                            .sourceType(stockRequest.stockSource().sourceType())
-                            .build()
-                    )
-                    .transactionType(TransactionType.ADD)
-                    .build();
+            StockTransaction stockTransaction = new StockTransaction(
+                    stockRequest.date(),
+                    stockRequest.description(),
+                    productDetails,
+                    new StockSource(
+                            stockRequest.stockSource().sourceId(),
+                            stockRequest.stockSource().sourceType()),
+                    TransactionType.ADD);
 
             stockTransactionRepository.save(stockTransaction);
             stockRepository.saveAll(stocksToUpdateOrCreate);
@@ -203,17 +198,14 @@ public class StockService implements IStockService {
                         .build())
                 .toList();
 
-        StockTransaction stockTransaction = StockTransaction.builder()
-                .date(stockRequest.date())
-                .description(stockRequest.description())
-                .productDetails(productDetails)
-                .source(StockSource.builder()
-                        .sourceId(stockRequest.stockSource().sourceId())
-                        .sourceType(stockRequest.stockSource().sourceType())
-                        .build()
-                )
-                .transactionType(TransactionType.DEDUCE)
-                .build();
+        StockTransaction stockTransaction = new StockTransaction(
+                stockRequest.date(),
+                stockRequest.description(),
+                productDetails,
+                new StockSource(
+                        stockRequest.stockSource().sourceId(),
+                        stockRequest.stockSource().sourceType()),
+                TransactionType.DEDUCE);
 
         stocks.forEach(s -> s.setQuantity(
                 s.getQuantity().subtract(productIdToQuantityMap.get(
@@ -227,7 +219,7 @@ public class StockService implements IStockService {
     @Override
     @Transactional
     public String addStockCheckList(InventoryRequest inventoryRequest) {
-        boolean isNewerStockChecklist = stockAuditRepository.existsByTypeAndDateGreaterThan(StockAuditType.STOCK_CHECKLIST, inventoryRequest.date());
+        boolean isNewerStockChecklist = stockAuditRepository.existsByStockAuditTypeAndDateGreaterThan(StockAuditType.STOCK_CHECKLIST, inventoryRequest.date());
         if (isNewerStockChecklist) {
             throw new ValidationException("Another Stock audit exists that was created after yours.");
         }
@@ -255,7 +247,7 @@ public class StockService implements IStockService {
             throw new ResourceNotFoundException("There are no productActual in stock for given ids [%s]".formatted(String.join(",", missingIds)));
         }
 
-        Optional<StockAudit> latestStockCheckList = stockAuditRepository.findTopByStockAuditTypeAndOrderByDateDesc(StockAuditType.STOCK_CHECKLIST);
+        Optional<StockAudit> latestStockCheckList = stockAuditRepository.findTopByStockAuditTypeOrderByDateDesc(StockAuditType.STOCK_CHECKLIST);
         List<StockTransaction> stockTransactions;
         Map<String, BigDecimal> productIdToQuantityMapFromDb;
 
@@ -325,20 +317,20 @@ public class StockService implements IStockService {
         StockAudit stockCheckList = StockAudit.builder()
                 .date(inventoryRequest.date())
                 .description(inventoryRequest.description())
-                .type(StockAuditType.STOCK_CHECKLIST)
+                .stockAuditType(StockAuditType.STOCK_CHECKLIST)
                 .productDetails(productActual)
                 .build();
 
         StockAudit stockDiff = StockAudit.builder()
                 .date(inventoryRequest.date())
-                .type(StockAuditType.STOCK_DIFF_FROM_CALC)
+                .stockAuditType(StockAuditType.STOCK_DIFF_FROM_CALC)
                 .productDetails(productDiff)
                 .build();
 
 
         StockAudit stockUsage = StockAudit.builder()
                 .date(inventoryRequest.date())
-                .type(StockAuditType.STOCK_USAGE_FROM_LAST_CHECK)
+                .stockAuditType(StockAuditType.STOCK_USAGE_FROM_LAST_CHECK)
                 .productDetails(productUsage)
                 .build();
 
@@ -378,7 +370,7 @@ public class StockService implements IStockService {
         return result;
     }
 
-    @KafkaListener(topics = "saleCreated", groupId = "saleGroup")
+    @KafkaListener(topics = "saleCreated", containerFactory = "kafkaListenerContainerFactory")
     public void consumeSaleCreatedEvent(SaleCreatedEvent event) {
         List<RecipeDto> recipes = fetchAndPrepareRecipes(event);
 
@@ -419,15 +411,14 @@ public class StockService implements IStockService {
                     }
                 });
 
-        StockTransaction stockTransaction = StockTransaction.builder()
-                .date(event.getDate())
-                .productDetails(productDetails)
-                .source(StockSource.builder()
-                        .sourceId(event.getId())
-                        .sourceType(SourceType.SALE_REQUEST)
-                        .build())
-                .transactionType(TransactionType.DEDUCE)
-                .build();
+        StockTransaction stockTransaction = new StockTransaction(
+                event.getDate(),
+                null,
+                productDetails,
+                new StockSource(
+                        event.getId(),
+                        SourceType.SALE_REQUEST),
+                TransactionType.DEDUCE);
 
         stockTransactionRepository.save(stockTransaction);
         stockRepository.saveAll(stocks);

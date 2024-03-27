@@ -6,9 +6,6 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
-
 @Document
 @Getter
 @Builder
@@ -20,6 +17,5 @@ public class Product {
     private String name;
     private String unitOfMeasure;
 
-    @Enumerated(EnumType.STRING)
     private ProductCategory category;
 }
