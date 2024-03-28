@@ -9,7 +9,7 @@ import java.util.List;
 
 public record SaleRequest(
         @NotNull LocalDateTime date,
-        @Valid @NotEmpty List<SoldItemRequest> items,
+        @Valid @NotEmpty List<SaleItemRequest> items,
         @Valid @NotEmpty List<PaymentDetailRequest> paymentDetails
 ) {
 }

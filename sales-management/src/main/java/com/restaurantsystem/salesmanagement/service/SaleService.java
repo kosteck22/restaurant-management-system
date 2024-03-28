@@ -1,20 +1,18 @@
 package com.restaurantsystem.salesmanagement.service;
 
 import com.restaurantsystem.salesmanagement.entity.Sale;
-import com.restaurantsystem.salesmanagement.entity.SoldItem;
+import com.restaurantsystem.salesmanagement.entity.SaleItem;
 import com.restaurantsystem.salesmanagement.service.dao.SaleRepository;
 import com.restaurantsystem.salesmanagement.web.client.MenuClient;
 import com.restaurantsystem.salesmanagement.web.dto.MenuItemDto;
 import com.restaurantsystem.salesmanagement.web.dto.SaleRequest;
-import com.restaurantsystem.salesmanagement.web.dto.SoldItemRequest;
-import org.springframework.http.ResponseEntity;
+import com.restaurantsystem.salesmanagement.web.dto.SaleItemRequest;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -37,7 +35,7 @@ public class SaleService implements ISaleService {
         List<MenuItemDto> menuItems = menuClient.getMenuItemsByIds(
                 saleRequest.items()
                         .stream()
-                        .map(SoldItemRequest::articleId)
+                        .map(SaleItemRequest::menuItemId)
                         .collect(Collectors.toList())
         ).getBody();
 
@@ -45,8 +43,14 @@ public class SaleService implements ISaleService {
         saleRepository.save(sale);
 
         SaleCreatedEvent event = new SaleCreatedEvent(
-                sale.getId(), sale.getDate(), sale.getItems().stream()
-                .collect(Collectors.toMap(SoldItem::getArticleId, SoldItem::getQuantity, Integer::sum))
+                sale.getId(),
+                sale.getDate(),
+                sale.getItems().stream()
+                        .collect(Collectors
+                                .toMap(
+                                        SaleItem::getMenuItemId,
+                                        SaleItem::getQuantity,
+                                        Integer::sum))
         );
 
         Message<SaleCreatedEvent> message = MessageBuilder

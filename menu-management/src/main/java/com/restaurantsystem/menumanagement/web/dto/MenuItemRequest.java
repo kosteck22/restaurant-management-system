@@ -13,7 +13,7 @@ public record MenuItemRequest(
         String description,
         @NotBlank String category,
         @NotNull Integer vat,
-        @NotNull @MonetaryValue @DecimalMin(value = "0.00", message = "Gross price must be greater than 0") BigDecimal grossPrice,
+        @NotNull @MonetaryValue @DecimalMin(value = "0.01", message = "Gross price must be greater than 0") BigDecimal grossPrice,
         boolean active
 ) {
 }

@@ -6,9 +6,9 @@ import jakarta.validation.constraints.NotNull;
 import org.hibernate.validator.constraints.Range;
 
 
-public record SoldItemRequest(
-        @NotBlank String articleId,
-        @NotNull @Min(value = 1) int quantity,
-        @Range(min = 0, max = 100) Integer itemDiscount
+public record SaleItemRequest(
+        @NotBlank String menuItemId,
+        @NotNull @Min(value = 1) Integer quantity,
+        @Range(min = 0, max = 100) Integer discount
 ) {
 }

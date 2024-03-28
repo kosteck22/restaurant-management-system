@@ -20,6 +20,8 @@ import com.restaurantsystem.stockmanagement.web.dto.recipe.IngredientDto;
 import com.restaurantsystem.stockmanagement.web.dto.recipe.RecipeDto;
 import jakarta.validation.ValidationException;
 import lombok.AllArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -34,6 +36,8 @@ import java.util.stream.Stream;
 @Service
 @AllArgsConstructor
 public class StockService implements IStockService {
+    private static final Logger logger = LoggerFactory.getLogger(StockService.class);
+
     private final InvoiceManagementClient invoiceManagementClient;
     private final RecipeClient recipeClient;
     private final ProductRepository productRepository;
@@ -370,11 +374,12 @@ public class StockService implements IStockService {
         return result;
     }
 
+    @Transactional
     @KafkaListener(topics = "saleCreated", containerFactory = "kafkaListenerContainerFactory")
     public void consumeSaleCreatedEvent(SaleCreatedEvent event) {
         List<RecipeDto> recipes = fetchAndPrepareRecipes(event);
 
-        List<IngredientDto> aggregatedIngredients = recipes.stream()
+        List<IngredientDto> ingredientsUsedForSale = recipes.stream()
                 .flatMap(r -> r.ingredients().stream())
                 .collect(Collectors.toMap(
                         IngredientDto::name,
@@ -389,7 +394,7 @@ public class StockService implements IStockService {
         List<Stock> stocks = stockRepository.findAll();
         List<ProductDetail> productDetails = new ArrayList<>();
 
-        aggregatedIngredients
+        ingredientsUsedForSale
                 .forEach(i -> {
                     BigDecimal ingredientQuantityNeeded = i.quantity();
                     List<Stock> stockForIngredient = stocks.stream()
@@ -426,7 +431,9 @@ public class StockService implements IStockService {
 
     private List<RecipeDto> fetchAndPrepareRecipes(SaleCreatedEvent event) {
         List<RecipeDto> recipes = recipeClient.getRecipesByIds(event.getSoldItemsIdToQuantityMap().keySet().stream().toList()).getBody();
-        assert recipes != null;
+        if (recipes == null || recipes.isEmpty()) {
+            throw new ResourceNotFoundException("Recipes not found for sold menu items [%s]".formatted(event.getId()));
+        }
 
         return recipes.stream()
                 .map(recipe -> adjustRecipeQuantities(recipe, event))
