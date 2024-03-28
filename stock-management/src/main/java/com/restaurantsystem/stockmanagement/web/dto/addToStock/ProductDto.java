@@ -1,4 +1,4 @@
-package com.restaurantsystem.stockmanagement.web.dto;
+package com.restaurantsystem.stockmanagement.web.dto.addToStock;
 
 import com.restaurantsystem.stockmanagement.entity.ProductCategory;
 import jakarta.validation.constraints.DecimalMin;

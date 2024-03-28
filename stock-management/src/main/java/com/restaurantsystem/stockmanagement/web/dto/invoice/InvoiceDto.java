@@ -7,7 +7,7 @@ import lombok.Getter;
 
 import java.time.LocalDate;
 
-@Getter
+
 public record InvoiceDto(
         String number,
         LocalDate createdAt,

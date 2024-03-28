@@ -1,6 +1,7 @@
 package com.restaurantsystem.menumanagement.web.dto;
 
 import com.restaurantsystem.menumanagement.web.validation.MonetaryValue;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
@@ -12,7 +13,7 @@ public record MenuItemRequest(
         String description,
         @NotBlank String category,
         @NotNull Integer vat,
-        @NotNull @MonetaryValue BigDecimal grossPrice,
+        @NotNull @MonetaryValue @DecimalMin(value = "0.01", message = "Gross price must be greater than 0") BigDecimal grossPrice,
         boolean active
 ) {
 }

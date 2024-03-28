@@ -5,7 +5,7 @@ import lombok.Getter;
 
 import java.math.BigDecimal;
 
-@Getter
+
 public record InvoiceProductDto (
         String name,
         String unitOfMeasure,

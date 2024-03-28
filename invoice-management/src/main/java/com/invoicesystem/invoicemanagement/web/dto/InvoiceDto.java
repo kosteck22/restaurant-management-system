@@ -9,6 +9,7 @@ import java.time.LocalDate;
 
 @Builder
 public record InvoiceDto(
+        String id,
         @NotBlank String number,
         @NotNull LocalDate createdAt,
         @NotNull @Valid CompanyDto seller,

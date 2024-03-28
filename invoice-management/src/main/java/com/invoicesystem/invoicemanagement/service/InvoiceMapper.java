@@ -12,23 +12,25 @@ import java.util.stream.Collectors;
 
 @Component
 public class InvoiceMapper {
-    public InvoiceDto toDto(Invoice company, CompanyDto buyer, CompanyDto seller) {
+    public InvoiceDto toDto(Invoice invoice, CompanyDto buyer, CompanyDto seller) {
         return InvoiceDto.builder()
-                .number(company.getNumber())
-                .createdAt(company.getCreatedAt())
+                .id(invoice.getId())
+                .number(invoice.getNumber())
+                .createdAt(invoice.getCreatedAt())
                 .buyer(buyer)
                 .seller(seller)
-                .order(createOrderDto(company.getOrder()))
+                .order(createOrderDto(invoice.getOrder()))
                 .build();
     }
 
-    public InvoiceDto toDto(Invoice company) {
+    public InvoiceDto toDto(Invoice invoice) {
         return InvoiceDto.builder()
-                .number(company.getNumber())
-                .createdAt(company.getCreatedAt())
-                .buyer(new CompanyDto(company.getBuyerId()))
-                .seller(new CompanyDto(company.getSellerId()))
-                .order(createOrderDto(company.getOrder()))
+                .id(invoice.getId())
+                .number(invoice.getNumber())
+                .createdAt(invoice.getCreatedAt())
+                .buyer(new CompanyDto(invoice.getBuyerId()))
+                .seller(new CompanyDto(invoice.getSellerId()))
+                .order(createOrderDto(invoice.getOrder()))
                 .build();
     }
 
@@ -37,11 +39,11 @@ public class InvoiceMapper {
                 .netPriceTotal(order.getNetPriceTotal())
                 .vatTotal(order.getVatTotal())
                 .grossPriceTotal(order.getGrossPriceTotal())
-                .orderDetails(createOrderDetailsDtos(order.getOrderDetails()))
+                .orderDetails(createOrderDetailsDto(order.getOrderDetails()))
                 .build();
     }
 
-    private List<OrderDetailsDto> createOrderDetailsDtos(List<OrderDetails> orderDetails) {
+    private List<OrderDetailsDto> createOrderDetailsDto(List<OrderDetails> orderDetails) {
         return orderDetails.stream()
                 .map(this::createOrderDetailsDto)
                 .collect(Collectors.toList());

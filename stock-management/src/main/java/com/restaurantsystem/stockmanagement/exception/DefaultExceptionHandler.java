@@ -35,6 +35,19 @@ public class DefaultExceptionHandler {
         return new ResponseEntity<>(apiError, HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(RequestValidationException.class)
+    public ResponseEntity<ApiError> handleException(RequestValidationException e, HttpServletRequest request) {
+        LOGGER.error(e.getMessage(), e);
+
+        ApiError apiError = new ApiError(
+                request.getRequestURI(),
+                List.of(e.getMessage()),
+                HttpStatus.BAD_REQUEST.value(),
+                new Date()
+        );
+        return new ResponseEntity<>(apiError, HttpStatus.BAD_REQUEST);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiError> handleValidationErrors(MethodArgumentNotValidException e, HttpServletRequest request) {
         LOGGER.error(e.getMessage(), e);
@@ -64,7 +77,7 @@ public class DefaultExceptionHandler {
 
         HttpStatus status = HttpStatus.resolve(e.status());
         if (status != null) {
-            return new ResponseEntity<>("Feign client error: " + e.getMessage(), status);
+            return new ResponseEntity<>(apiError, status);
         }
 
         return new ResponseEntity<>(apiError, HttpStatus.valueOf(apiError.statusCode()));

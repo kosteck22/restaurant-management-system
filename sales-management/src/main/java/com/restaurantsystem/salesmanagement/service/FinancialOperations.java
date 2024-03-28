@@ -5,18 +5,18 @@ import java.math.RoundingMode;
 
 public class FinancialOperations {
     public static class ItemResult {
-        public BigDecimal netPrice;
+        public BigDecimal netPriceTotal;
         public BigDecimal vatTotal;
         public BigDecimal grossTotal;
 
         public ItemResult(BigDecimal netPrice, BigDecimal vatTotal, BigDecimal grossTotal) {
-            this.netPrice = netPrice;
+            this.netPriceTotal = netPrice;
             this.vatTotal = vatTotal;
             this.grossTotal = grossTotal;
         }
     }
 
-    public static ItemResult calculateTotals(int q, BigDecimal grossPrice, Integer vRate, Integer percentageDiscount) {
+    public static ItemResult calculateTotals(Integer q, BigDecimal grossPrice, Integer vRate, Integer percentageDiscount) {
         BigDecimal grossTotal;
         BigDecimal netTotal;
         BigDecimal vatTotal;

@@ -1,6 +1,5 @@
 package com.invoicesystem.invoicemanagement.web;
 
-import com.invoicesystem.invoicemanagement.entity.Invoice;
 import com.invoicesystem.invoicemanagement.service.IInvoiceService;
 import com.invoicesystem.invoicemanagement.web.dto.InvoiceDto;
 import com.invoicesystem.invoicemanagement.web.dto.TotalSumsDto;
@@ -30,7 +29,7 @@ public class InvoiceController {
     public ResponseEntity<Page<InvoiceDto>> getInvoicesAsPage(@PageableDefault(size = 20) Pageable pageable) {
         Page<InvoiceDto> invoicePage = invoiceService.getAsPage(pageable);
         if (invoicePage.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NO_CONTENT).body(Page.empty());
+            return ResponseEntity.status(HttpStatus.NO_CONTENT).body(invoicePage);
         }
 
         return ResponseEntity.ok(invoicePage);

@@ -11,6 +11,6 @@ public record StockSourceDto(
         @NotNull SourceType sourceType
 ) {
     public Optional<String> getSourceId() {
-        return Optional.of(sourceId);
+        return Optional.ofNullable(sourceId);
     }
 }

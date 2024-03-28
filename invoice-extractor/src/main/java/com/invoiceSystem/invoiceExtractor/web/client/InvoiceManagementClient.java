@@ -5,7 +5,7 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 
-@FeignClient(name = "invoice-management")
+@FeignClient(name = "invoice-management-service")
 public interface InvoiceManagementClient {
     @PostMapping("/api/v1/invoices")
     ResponseEntity<String> save(InvoiceResponse invoiceRequest);

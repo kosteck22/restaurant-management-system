@@ -16,7 +16,7 @@ public class Sale {
     @Id
     private String id;
     private LocalDateTime date;
-    private List<SoldItem> items;
+    private List<SaleItem> items;
     private BigDecimal grossPrice;
     private BigDecimal netPrice;
     private BigDecimal vatTotal;

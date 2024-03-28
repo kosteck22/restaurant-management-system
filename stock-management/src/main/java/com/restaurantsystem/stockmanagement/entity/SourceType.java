@@ -4,5 +4,5 @@ import lombok.Getter;
 
 @Getter
 public enum SourceType {
-    INVOICE, GIFT, OTHER
+    INVOICE, GIFT, OTHER, SALE_REQUEST, WASTE
 }
