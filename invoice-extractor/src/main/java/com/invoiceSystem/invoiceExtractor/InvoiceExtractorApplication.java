@@ -13,6 +13,9 @@ public class InvoiceExtractorApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(InvoiceExtractorApplication.class, args);
+		System.out.println("a");
+		System.out.println("b");
+		System.out.println("c");
 	}
 
 }
