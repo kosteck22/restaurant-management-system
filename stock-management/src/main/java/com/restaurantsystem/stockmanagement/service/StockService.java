@@ -1,5 +1,8 @@
 package com.restaurantsystem.stockmanagement.service;
 
+import com.restaurantsystem.common.messages.event.NotEnoughProductsInStockEvent;
+import com.restaurantsystem.common.messages.event.RecipeNotFoundEvent;
+import com.restaurantsystem.common.messages.event.SaleCreatedEvent;
 import com.restaurantsystem.stockmanagement.entity.*;
 import com.restaurantsystem.stockmanagement.exception.RequestValidationException;
 import com.restaurantsystem.stockmanagement.exception.ResourceNotFoundException;
@@ -7,6 +10,7 @@ import com.restaurantsystem.stockmanagement.service.dao.StockAuditRepository;
 import com.restaurantsystem.stockmanagement.service.dao.ProductRepository;
 import com.restaurantsystem.stockmanagement.service.dao.StockRepository;
 import com.restaurantsystem.stockmanagement.service.dao.StockTransactionRepository;
+import com.restaurantsystem.stockmanagement.service.kafka.StockEventPublisherService;
 import com.restaurantsystem.stockmanagement.web.client.InvoiceManagementClient;
 import com.restaurantsystem.stockmanagement.web.client.RecipeClient;
 import com.restaurantsystem.stockmanagement.web.dto.InventoryRequest;
@@ -20,11 +24,11 @@ import com.restaurantsystem.stockmanagement.web.dto.recipe.IngredientDto;
 import com.restaurantsystem.stockmanagement.web.dto.recipe.RecipeDto;
 import jakarta.validation.ValidationException;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,8 +39,8 @@ import java.util.stream.Stream;
 
 @Service
 @AllArgsConstructor
+@Slf4j
 public class StockService implements IStockService {
-    private static final Logger logger = LoggerFactory.getLogger(StockService.class);
 
     private final InvoiceManagementClient invoiceManagementClient;
     private final RecipeClient recipeClient;
@@ -44,6 +48,7 @@ public class StockService implements IStockService {
     private final StockTransactionRepository stockTransactionRepository;
     private final StockRepository stockRepository;
     private final StockAuditRepository stockAuditRepository;
+    private final StockEventPublisherService stockEventPublisherService;
 
     @Override
     public Page<Stock> getStocksAsPage(Pageable pageable) {
@@ -375,9 +380,8 @@ public class StockService implements IStockService {
     }
 
     @Transactional
-    @KafkaListener(topics = "saleCreated", containerFactory = "kafkaListenerContainerFactory")
     public void consumeSaleCreatedEvent(SaleCreatedEvent event) {
-        List<RecipeDto> recipes = fetchAndPrepareRecipes(event);
+        List<RecipeDto> recipes = getRecipes(event);
 
         List<IngredientDto> ingredientsUsedForSale = recipes.stream()
                 .flatMap(r -> r.ingredients().stream())
@@ -412,6 +416,7 @@ public class StockService implements IStockService {
                     }
 
                     if (ingredientQuantityNeeded.compareTo(BigDecimal.ZERO) > 0) {
+                        stockEventPublisherService.publishNotEnoughProductsInStock(new NotEnoughProductsInStockEvent(event.getSaleId()));
                         throw new ResourceNotFoundException("There is not enough products in Stock for ingredient [%s]".formatted(i.name()));
                     }
                 });
@@ -421,7 +426,7 @@ public class StockService implements IStockService {
                 null,
                 productDetails,
                 new StockSource(
-                        event.getId(),
+                        event.getSaleId(),
                         SourceType.SALE_REQUEST),
                 TransactionType.DEDUCE);
 
@@ -429,10 +434,14 @@ public class StockService implements IStockService {
         stockRepository.saveAll(stocks);
     }
 
-    private List<RecipeDto> fetchAndPrepareRecipes(SaleCreatedEvent event) {
-        List<RecipeDto> recipes = recipeClient.getRecipesByIds(event.getSoldItemsIdToQuantityMap().keySet().stream().toList()).getBody();
-        if (recipes == null || recipes.isEmpty()) {
-            throw new ResourceNotFoundException("Recipes not found for sold menu items [%s]".formatted(event.getId()));
+    private List<RecipeDto> getRecipes(SaleCreatedEvent event) {
+        List<String> soldItemIds = event.getSoldItemsIdToQuantityMap().keySet().stream().toList();
+        List<RecipeDto> recipes = recipeClient.getRecipesByIds(soldItemIds).getBody();
+        if (recipes == null || recipes.isEmpty() || recipes.size() < soldItemIds.size()) {
+            log.info("Recipes not found for SaleCreatedEvent {}", event);
+            stockEventPublisherService.publishRecipeNotFoundEvent(new RecipeNotFoundEvent(event.getSaleId()));
+
+            throw new ResourceNotFoundException("Recipes not found for SaleId [%s]".formatted(event.getSaleId()));
         }
 
         return recipes.stream()

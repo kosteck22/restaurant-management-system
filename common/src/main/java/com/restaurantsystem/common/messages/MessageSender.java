@@ -1,5 +1,5 @@
 package com.restaurantsystem.common.messages;
 
-public interface MessageProducer {
+public interface MessageSender {
     void send(Message<?> m);
 }

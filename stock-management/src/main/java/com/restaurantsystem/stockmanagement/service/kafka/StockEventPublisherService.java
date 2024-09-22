@@ -1,16 +1,36 @@
 package com.restaurantsystem.stockmanagement.service.kafka;
 
-import lombok.AllArgsConstructor;
-import org.springframework.kafka.core.KafkaTemplate;
+import com.restaurantsystem.common.messages.Message;
+import com.restaurantsystem.common.messages.MessageSender;
+import com.restaurantsystem.common.messages.event.NotEnoughProductsInStockEvent;
+import com.restaurantsystem.common.messages.event.RecipeNotFoundEvent;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
-@AllArgsConstructor
-public class StockEventProducer {
+@RequiredArgsConstructor
+public class StockEventPublisherService {
 
-    private final KafkaTemplate<String, String> kafkaTemplate;
+    private final MessageSender eventPublisher;
 
-    public void publish(String message) {
+    @Value("${topic.stock}")
+    private String stockTopic;
+    public void publishRecipeNotFoundEvent(RecipeNotFoundEvent event) {
+        Message<RecipeNotFoundEvent> message = new Message<>(
+                "RecipeNotFoundEvent",
+                event
+        );
 
+        eventPublisher.send(message);
+    }
+
+    public void publishNotEnoughProductsInStock(NotEnoughProductsInStockEvent event) {
+        Message<NotEnoughProductsInStockEvent> message = new Message<>(
+                "NotEnoughProductsEvent",
+                event
+        );
+
+        eventPublisher.send(message);
     }
 }

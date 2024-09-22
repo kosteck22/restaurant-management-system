@@ -23,5 +23,4 @@ public class Invoice {
     private String sellerId;
     private String buyerId;
     private Order order;
-
 }

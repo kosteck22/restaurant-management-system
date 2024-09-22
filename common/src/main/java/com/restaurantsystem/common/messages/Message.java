@@ -1,4 +1,4 @@
-package com.restaurantsystem.common.event;
+package com.restaurantsystem.common.messages;
 
 import java.util.Date;
 import java.util.UUID;
@@ -6,9 +6,21 @@ import java.util.UUID;
 public class Message<T> {
     private String type;
     private String id = UUID.randomUUID().toString();
-    private String source = "Default";
     private Date time = new Date();
     private T data;
+
+    private String traceId = UUID.randomUUID().toString();
+
+    public Message(String type, T data) {
+        this.type = type;
+        this.data = data;
+    }
+
+    public Message(String type, T data, String traceId) {
+        this.type = type;
+        this.data = data;
+        this.traceId = traceId;
+    }
 
     public String getType() {
         return type;
@@ -24,14 +36,6 @@ public class Message<T> {
 
     public void setId(String id) {
         this.id = id;
-    }
-
-    public String getSource() {
-        return source;
-    }
-
-    public void setSource(String source) {
-        this.source = source;
     }
 
     public Date getTime() {

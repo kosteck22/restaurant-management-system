@@ -43,6 +43,7 @@ public class SaleCreatorService implements ISaleCreatorService {
                                 .amount(p.amount()).build())
                         .collect(Collectors.toList())
                 )
+                .stockStatus(StockStatus.PENDING)
                 .build();
     }
 

@@ -1,5 +1,6 @@
 package com.restaurantsystem.stockmanagement.service;
 
+import com.restaurantsystem.common.messages.event.SaleCreatedEvent;
 import com.restaurantsystem.stockmanagement.entity.Stock;
 import com.restaurantsystem.stockmanagement.web.dto.InventoryRequest;
 import com.restaurantsystem.stockmanagement.web.dto.addToStock.AddToStockRequest;
@@ -12,4 +13,5 @@ public interface IStockService {
     void deduceProductsFromStock(DeduceFromStockRequest stockRequest);
     Page<Stock> getStocksAsPage(Pageable pageable);
     String addStockCheckList(InventoryRequest inventoryRequest);
+    void consumeSaleCreatedEvent(SaleCreatedEvent event);
 }

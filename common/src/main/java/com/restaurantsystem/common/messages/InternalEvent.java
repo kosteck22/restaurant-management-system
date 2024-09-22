@@ -1,4 +1,4 @@
-package com.restaurantsystem.common.event;
+package com.restaurantsystem.common.messages;
 
 public interface InternalEvent {
 }

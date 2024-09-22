@@ -1,34 +1,28 @@
 package com.restaurantsystem.salesmanagement.service;
 
+import com.restaurantsystem.common.messages.event.SaleCreatedEvent;
 import com.restaurantsystem.salesmanagement.entity.Sale;
 import com.restaurantsystem.salesmanagement.entity.SaleItem;
+import com.restaurantsystem.salesmanagement.event.SaleEventPublisherService;
 import com.restaurantsystem.salesmanagement.service.dao.SaleRepository;
 import com.restaurantsystem.salesmanagement.web.client.MenuClient;
 import com.restaurantsystem.salesmanagement.web.dto.MenuItemDto;
 import com.restaurantsystem.salesmanagement.web.dto.SaleRequest;
 import com.restaurantsystem.salesmanagement.web.dto.SaleItemRequest;
-import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.kafka.support.KafkaHeaders;
-import org.springframework.messaging.Message;
-import org.springframework.messaging.support.MessageBuilder;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class SaleService implements ISaleService {
     private final SaleRepository saleRepository;
     private final MenuClient menuClient;
     private final ISaleCreatorService saleCreatorService;
-    private final KafkaTemplate<String, SaleCreatedEvent> kafkaTemplate;
+    private final SaleEventPublisherService eventPublisherService;
 
-    public SaleService(SaleRepository saleRepository, MenuClient menuClient, ISaleCreatorService saleCreatorService, KafkaTemplate<String, SaleCreatedEvent> kafkaTemplate) {
-        this.saleRepository = saleRepository;
-        this.menuClient = menuClient;
-        this.saleCreatorService = saleCreatorService;
-        this.kafkaTemplate = kafkaTemplate;
-    }
 
     @Override
     public String save(SaleRequest saleRequest) {
@@ -53,12 +47,7 @@ public class SaleService implements ISaleService {
                                         Integer::sum))
         );
 
-        Message<SaleCreatedEvent> message = MessageBuilder
-                .withPayload(event)
-                .setHeader(KafkaHeaders.TOPIC, "saleCreated")
-                .build();
-
-        kafkaTemplate.send(message);
+        eventPublisherService.publishSaleCreatedEvent(event);
 
         return sale.getId();
     }

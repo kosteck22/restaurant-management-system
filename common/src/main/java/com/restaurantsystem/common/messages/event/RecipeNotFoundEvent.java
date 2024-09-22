@@ -1,2 +1,8 @@
-package com.restaurantsystem.common.messages.event;public class RecipeNotFoundEvent {
+package com.restaurantsystem.common.messages.event;
+
+import lombok.AllArgsConstructor;
+
+@AllArgsConstructor
+public class RecipeNotFoundEvent {
+    private String saleId;
 }

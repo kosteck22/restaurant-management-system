@@ -44,7 +44,7 @@ public class CompanyValidator {
     }
 
     private boolean isPostalCodeIncorrectFormat(String postalCode) {
-        return postalCode.matches("^\\d{5}$");
+        return postalCode.matches("^\\d{2}-\\d{3}$");
     }
 
     private boolean isRegonIncorrectLength(String regon) {

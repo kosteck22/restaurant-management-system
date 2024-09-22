@@ -22,4 +22,5 @@ public class Sale {
     private BigDecimal vatTotal;
     private List<VatDetail> vatDetails;
     private List<PaymentDetail> paymentDetails;
+    private StockStatus stockStatus;
 }
