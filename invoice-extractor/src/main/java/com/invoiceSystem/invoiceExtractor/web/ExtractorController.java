@@ -1,7 +1,5 @@
 package com.invoiceSystem.invoiceExtractor.web;
 
-
-import com.invoiceSystem.invoiceExtractor.entity.Invoice;
 import com.invoiceSystem.invoiceExtractor.service.IInvoiceExtractorService;
 import com.invoiceSystem.invoiceExtractor.service.invoiceExtractor.InvoiceImageExtractionType;
 import org.springframework.http.MediaType;

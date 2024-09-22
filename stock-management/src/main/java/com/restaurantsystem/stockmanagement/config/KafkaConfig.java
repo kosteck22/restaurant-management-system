@@ -1,6 +1,7 @@
 package com.restaurantsystem.stockmanagement.config;
 
-import com.restaurantsystem.stockmanagement.service.SaleCreatedEvent;
+import com.restaurantsystem.common.messages.InternalEvent;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,23 +17,31 @@ import java.util.Map;
 
 @Configuration
 @EnableKafka
-public class KafkaConfig {
-    @Bean
-    public ConsumerFactory<String, SaleCreatedEvent> consumerFactory() {
-        Map<String, Object> props = new HashMap<>();
-        props.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
-        props.put("bootstrap.servers", "localhost:9092");
-        props.put("group.id", "saleGroup");
-        props.put("auto.offset.reset", "earliest");
+public class KafkaConsumerConfig {
 
-        return new DefaultKafkaConsumerFactory<>(props,
-                new StringDeserializer(),
-                new ErrorHandlingDeserializer<>(new JsonDeserializer<>(SaleCreatedEvent.class, false)));
+    private Map<String, Object> getConsumerConfig() {
+        final Map<String, Object> properties = new HashMap<>();
+        properties.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
+        properties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+        properties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        properties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+
+        properties.put(ConsumerConfig.GROUP_ID_CONFIG, "saleGroup");
+        properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+
+
+        return properties;
+    }
+    @Bean
+    public ConsumerFactory<String, String> consumerFactory() {
+        Map<String, Object> props = getConsumerConfig();
+
+        return new DefaultKafkaConsumerFactory<>(props);
     }
 
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, SaleCreatedEvent> kafkaListenerContainerFactory() {
-        ConcurrentKafkaListenerContainerFactory<String, SaleCreatedEvent> factory =
+    public ConcurrentKafkaListenerContainerFactory<String, String> kafkaListenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, String> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory());
         return factory;
